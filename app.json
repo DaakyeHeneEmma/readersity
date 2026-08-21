@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "Readersity",
+    "slug": "readersity",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true
+  }
+}
+
