@@ -45,7 +45,7 @@ export default function App() {
     : screen === 'shelf' ? <Shelf books={shelf} />
     : <Details onRead={addToShelf} onBack={() => setScreen('search')} />;
 
-  return <SafeAreaView style={styles.safe}><StatusBar barStyle="light-content" backgroundColor={BLUE}/><View style={[styles.canvas, {width: 390 * scale}]}>{body}{screen !== 'splash' && <TabBar screen={screen} go={setScreen}/>}</View></SafeAreaView>;
+  return <SafeAreaView style={styles.safe}><StatusBar barStyle="light-content"/><View style={[styles.canvas, {width: 390 * scale}]}>{body}{screen !== 'splash' && <TabBar screen={screen} go={setScreen}/>}</View></SafeAreaView>;
 }
 
 function Splash({onReady}: {onReady: () => void}) {
