@@ -1840,6 +1840,15 @@ expo-server@^58.0.6:
   resolved "https://registry.yarnpkg.com/expo-server/-/expo-server-58.0.6.tgz#1bc9cdaa3843b7a33608e653dc8b1b8f88feaee8"
   integrity sha512-6DBlSZwxk3J0y1j2s4XebAWNiwGaMp32NcWX7b2kJC2+EFf1g+pCcVmx8ylawt2tyLmbDHswm4MHOfrd4bqfvA==
 
+expo-splash-screen@~58.0.12:
+  version "58.0.12"
+  resolved "https://registry.yarnpkg.com/expo-splash-screen/-/expo-splash-screen-58.0.12.tgz#7a772b647da844dd338bbb2215b5b477320812e8"
+  integrity sha512-8TceS1bu1R0IuLP9VPa6cPeVytR/V/+NqhA4rOqwqDr5MIu6u4hryIxxLYWKwWXGLOzoPC6paaBiqnMsr+nLuw==
+  dependencies:
+    "@expo/config-plugins" "~58.0.11"
+    "@expo/image-utils" "^0.12.6"
+    xml2js "0.6.0"
+
 expo@^58.0.0:
   version "58.0.22"
   resolved "https://registry.yarnpkg.com/expo/-/expo-58.0.22.tgz#4eab9222397dbe85b96f5683a1b64ce0e40170bf"

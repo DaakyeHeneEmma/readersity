@@ -2,9 +2,27 @@
   "expo": {
     "name": "Readersity",
     "slug": "readersity",
+    "icon": "./assets/app-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true
+    "newArchEnabled": true,
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/app-icon-foreground.png",
+        "backgroundColor": "#0F36BF"
+      }
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0F36BF",
+          "image": "./assets/optimized/brand-art.png",
+          "imageWidth": 282,
+          "resizeMode": "contain"
+        }
+      ]
+    ]
   }
 }
 
