@@ -10,7 +10,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon-foreground.png",
         "backgroundColor": "#0F36BF"
-      }
+      },
+      "package": "com.daakyeheneemma.readersity"
     },
     "plugins": [
       [
@@ -22,7 +23,11 @@
           "resizeMode": "contain"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2a36ddb3-ccd8-4075-b3be-1b9ab324a5e7"
+      }
+    }
   }
 }
-
