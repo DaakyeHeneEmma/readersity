@@ -1,12 +1,12 @@
 import React from 'react';
 import {Image, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
-import {Book, assets, books} from '../data/books';
+import {Book, BookFile, assets} from '../data/books';
 import {colors, fontFamily} from '../theme/colors';
 import {ScreenHeader} from '../components/ScreenHeader';
 
-type Props = {book: Book; inShelf: boolean; backLabel: string; onAdd: () => void; onRemove: () => void; onBack: () => void; onBookPress: (book: Book) => void};
+type Props = {book: Book; books: Book[]; inShelf: boolean; backLabel: string; onAdd: () => void; onRemove: () => void; onOpenFile: (file: BookFile) => void; onBack: () => void; onBookPress: (book: Book) => void};
 
-export function BookDetailsScreen({book, inShelf, backLabel, onAdd, onRemove, onBack, onBookPress}: Props) {
+export function BookDetailsScreen({book, books, inShelf, backLabel, onAdd, onRemove, onOpenFile, onBack, onBookPress}: Props) {
   const recommendations = books.filter(item => item.id !== book.id).slice(0, 2);
   const longTitle = book.title.length > 24;
   return <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -18,6 +18,7 @@ export function BookDetailsScreen({book, inShelf, backLabel, onAdd, onRemove, on
       <View style={styles.name}><Text numberOfLines={3} style={[styles.title, longTitle && styles.longTitle]}>{book.title}</Text><Text style={styles.author}>{book.author}</Text>{book.rating ? <Text style={styles.rating}>★ {book.rating}</Text> : null}</View>
     </View>
     <View style={styles.summary}><Text style={styles.sectionTitle}>Summary</Text><Text style={styles.summaryText}>{book.summary || 'A thoughtful read selected for your shelf.'}</Text></View>
+    {book.files?.length ? <View style={styles.availableFiles}><Text style={styles.sectionTitle}>Available formats</Text>{book.files.map(file => <Pressable key={file.id} accessibilityRole="button" onPress={() => onOpenFile(file)} style={styles.fileButton}><Text style={styles.fileButtonText}>Open {file.format.toUpperCase()}  →</Text><Text style={styles.fileName} numberOfLines={1}>{file.fileName}</Text></Pressable>)}</View> : null}
     <Pressable accessibilityRole="button" onPress={inShelf ? onRemove : onAdd} style={[styles.action, styles.readAction, inShelf && styles.removeAction]}><Text style={styles.actionText}>{inShelf ? 'Remove From Shelf  ×' : 'Want To Read  →'}</Text></Pressable>
     <Pressable accessibilityRole="button" onPress={onBack} style={[styles.action, styles.backAction]}><Text style={styles.actionText}>←  {backLabel}</Text></Pressable>
     <View style={styles.divider} />
@@ -33,6 +34,7 @@ const styles = StyleSheet.create({
   name: {flex: 1, paddingLeft: 40, paddingBottom: 34},
   title: {fontFamily, fontWeight: '700', fontSize: 22, lineHeight: 26, color: '#000'}, longTitle: {fontSize: 18, lineHeight: 22}, author: {fontFamily, fontWeight: '700', fontSize: 14, color: 'rgba(0,0,0,.8)', marginTop: 7}, rating: {fontFamily, fontWeight: '700', marginTop: 8, color: colors.blue},
   summary: {marginTop: 44, marginHorizontal: 23}, sectionTitle: {fontFamily, fontWeight: '700', fontSize: 24}, summaryText: {fontFamily, fontSize: 12, lineHeight: 15, color: 'rgba(0,0,0,.8)', marginTop: 7},
+  availableFiles: {marginTop: 24, marginHorizontal: 23, gap: 9}, fileButton: {minHeight: 54, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12, backgroundColor: '#F2F4FA', justifyContent: 'center'}, fileButtonText: {fontFamily, fontWeight: '700', color: colors.blue, fontSize: 15}, fileName: {fontFamily, color: colors.muted, fontSize: 11, marginTop: 2},
   action: {height: 46, marginHorizontal: 42, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginTop: 42, elevation: 4}, readAction: {backgroundColor: colors.blue}, removeAction: {backgroundColor: '#B42318'}, backAction: {backgroundColor: colors.gold, marginTop: 19}, actionText: {fontFamily, fontSize: 19, fontWeight: '700', color: colors.white},
   divider: {height: 1, backgroundColor: '#D8D8D8', marginHorizontal: 32, marginTop: 18}, recommendTitle: {fontFamily, fontWeight: '700', color: colors.blue, marginHorizontal: 18, marginTop: 14}, recommendations: {flexDirection: 'row', gap: 10, marginTop: 12, paddingHorizontal: 9}, recommendation: {width: 150}, recCover: {width: 118, height: 93, borderRadius: 5}, recTitle: {fontFamily, fontWeight: '700', fontSize: 14, marginTop: 8}, recAuthor: {fontFamily, fontWeight: '700', fontSize: 12, color: 'rgba(0,0,0,.8)'},
 });

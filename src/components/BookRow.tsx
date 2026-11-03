@@ -11,7 +11,7 @@ export function BookRow({book, onPress, compact = false, onRemove}: Props) {
       {book.cover ? <Image source={book.cover} resizeMode="cover" resizeMethod="resize" fadeDuration={0} style={[styles.cover, compact && styles.compactCover]} /> : <View style={[styles.cover, styles.placeholder, compact && styles.compactCover]} />}
       <View style={styles.info}>
         <Text style={[styles.title, compact && styles.compactTitle]} numberOfLines={2}>{book.title}</Text>
-        <Text style={styles.author} numberOfLines={1}>{book.author}</Text>
+        <Text style={styles.author} numberOfLines={1}>{book.author}{book.files?.length ? `  ·  ${book.files.map(file => file.format.toUpperCase()).join(' / ')}` : ''}</Text>
       </View>
       {compact ? <Text style={styles.chevron}>›</Text> : null}
     </Pressable>
