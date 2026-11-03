@@ -4,8 +4,13 @@ dist/
 web-build/
 expo-env.d.ts
 
-# Local environment files
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
 .env*.local
+gdrive_key.json
+*service-account*.json
 
 # Signing keys and provisioning files
 *.jks
@@ -27,3 +32,5 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 bun.lock
+__pycache__/
+*.py[cod]

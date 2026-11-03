@@ -7,6 +7,16 @@ export type Book = {
   cover?: ImageSourcePropType;
   summary?: string;
   rating?: string;
+  files?: BookFile[];
+};
+
+export type BookFile = {
+  id: string;
+  format: 'pdf' | 'epub';
+  fileName: string;
+  publicUrl: string;
+  mimeType: string;
+  fileSizeBytes: number;
 };
 
 export type BookEntry = Book;
