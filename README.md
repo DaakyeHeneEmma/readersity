@@ -47,3 +47,15 @@ The app falls back to its bundled sample catalog if the Supabase environment val
 
 The app's design images are exported from the [Readersity Figma file](https://www.figma.com/design/fSgaAS5LGgpeyrz4OClaT3/Readersity) and stored in `assets/`. The starter shelf covers are from the [Open Library Covers API](https://openlibrary.org/dev/docs/api/covers). `src/data/books.ts` maps the local files into the app, so runtime image loading does not depend on remote image URLs.
 
+# User accounts and personal shelves
+
+Catalog browsing stays public. Readersity asks users to sign in only when they add a book to their shelf. Shelf rows are stored in Supabase and protected by row-level security so each user can only read, add, or remove their own rows.
+
+Before using account features:
+
+1. Run `supabase/migrations/20261104000000_create_user_books.sql` and then `supabase/migrations/20261104000001_limit_user_shelf_to_ten.sql` in the Supabase SQL Editor. The second migration limits every user's shelf to 10 books.
+2. In Supabase Authentication URL Configuration, allow `readersity://auth/callback` for email confirmation links.
+3. In Google Cloud, set up an Android OAuth client for `com.daakyeheneemma.readersity` and its signing-certificate SHA-1. Set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in `.env` to the Web OAuth client ID also used by the Supabase Google provider. For iOS, create an iOS OAuth client and set `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`; `app.config.js` adds its URL scheme automatically.
+4. Run `bun install`, then rebuild the development app. Native Google sign-in is not supported in Expo Go; Google login uses its native account chooser and sends the ID token directly to Supabase.
+
+The app uses the existing `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_KEY` values. Never put the service-role key in the mobile app.

@@ -12,7 +12,7 @@ export function HomeScreen({books, popularBooks = [], bookOfMonth, catalogUnavai
   const [featureIndex, setFeatureIndex] = useState(0);
   const featureSlideX = useRef(new Animated.Value(0)).current;
   const visibleBooks = category === 'Popular' ? (popularBooks.length ? popularBooks : [...books].sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0)).slice(0, 5)) : books;
-  const monthBook = bookOfMonth || books.find(book => book.title.trim().toLowerCase() === 'the power of focus') || books[0];
+  const monthBook = bookOfMonth;
   const featuredBook = books.length ? books[featureIndex % books.length] : undefined;
 
   useEffect(() => {
@@ -44,16 +44,16 @@ export function HomeScreen({books, popularBooks = [], bookOfMonth, catalogUnavai
         </Animated.View>
       </Pressable> : null}
     </ScreenHeader>
-    {catalogUnavailable ? <Text style={styles.catalogWarning}>Online library unavailable. Showing the bundled sample catalog.</Text> : null}
+    {catalogUnavailable ? <Text style={styles.catalogWarning}>Online library unavailable. Pull down to try again.</Text> : null}
     <View style={styles.categoryTabs}>
       {(['All Books', 'Popular'] as const).map(item => <Pressable key={item} accessibilityRole="button" accessibilityState={{selected: category === item}} onPress={() => setCategory(item)}><Text style={category === item ? styles.activeTab : styles.tab}>{item}</Text></Pressable>)}
     </View>
     {category === 'Popular' ? <View style={styles.heading}><Text style={styles.headingText}>Popular books</Text></View> : null}
     {category === 'Popular' ? <View style={styles.popularList}>{visibleBooks.length ? visibleBooks.map(book => <Pressable key={book.id} onPress={() => onBookPress(book)} style={styles.popularItem}><Text style={styles.popularTitle}>{book.title}</Text><Text style={styles.popularAuthor}>{book.author}{book.rating ? `  ·  ★ ${book.rating}` : ''}</Text></Pressable>) : <Text style={styles.catalogEmpty}>No books are available yet.</Text>}</View> : null}
-    {monthBook ? <Pressable accessibilityRole="button" accessibilityLabel={`View details for ${monthBook.title}`} onPress={() => onBookPress(monthBook)} style={styles.monthFeature}>
-        {monthBook.cover ? <Image source={monthBook.cover} resizeMode="cover" resizeMethod="resize" fadeDuration={0} style={styles.monthFeatureCover} /> : null}
-        <View style={styles.monthFeatureInfo}><Text style={styles.monthFeatureLabel}>Book of the Month</Text><Text style={styles.monthFeatureTitle}>{monthBook.title}</Text><Text style={styles.monthFeatureAuthor}>{monthBook.author}</Text><Text numberOfLines={2} style={styles.monthFeatureSummary}>{monthBook.summary}</Text><Text style={styles.monthFeatureLink}>View Details  →</Text></View>
-      </Pressable> : null}
+    <Pressable accessibilityRole={monthBook ? 'button' : undefined} accessibilityLabel={monthBook ? `View details for ${monthBook.title}` : 'Book of the Month'} onPress={monthBook ? () => onBookPress(monthBook) : undefined} style={styles.monthFeature}>
+      {monthBook?.cover ? <Image source={monthBook.cover} resizeMode="cover" resizeMethod="resize" fadeDuration={0} style={styles.monthFeatureCover} /> : <View style={styles.monthFeatureCover} />}
+      {monthBook ? <View style={styles.monthFeatureInfo}><Text style={styles.monthFeatureLabel}>Book of the Month</Text><Text style={styles.monthFeatureTitle}>{monthBook.title}</Text><Text style={styles.monthFeatureAuthor}>{monthBook.author}</Text><Text numberOfLines={2} style={styles.monthFeatureSummary}>{monthBook.summary}</Text><Text style={styles.monthFeatureLink}>View Details  →</Text></View> : <View style={styles.monthFeatureInfo}><Text style={styles.monthFeatureLabel}>Book of the Month</Text><Text style={styles.monthFeatureSummary}>A recommended book will appear here when the catalog is available.</Text></View>}
+    </Pressable>
     <View style={styles.catalogHeading}><Text style={styles.headingText}>Explore the catalog</Text><Pressable onPress={onSearch}><Text style={styles.browse}>See all</Text></Pressable></View>
     <View style={styles.catalog}>{books.length ? books.slice(0, 5).map(book => <Pressable key={book.id} onPress={() => onBookPress(book)}><Text style={styles.catalogTitle}>{book.title}</Text><Text style={styles.catalogAuthor}>{book.author}</Text></Pressable>) : <Text style={styles.catalogEmpty}>No books are available yet.</Text>}</View>
   </ScrollView>;
