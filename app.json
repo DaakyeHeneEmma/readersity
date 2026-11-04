@@ -2,6 +2,7 @@
   "expo": {
     "name": "Readersity",
     "slug": "readersity",
+    "scheme": "readersity",
     "icon": "./assets/app-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -12,6 +13,9 @@
         "backgroundColor": "#0F36BF"
       },
       "package": "com.daakyeheneemma.readersity"
+    },
+    "ios": {
+      "bundleIdentifier": "com.daakyeheneemma.readersity"
     },
     "plugins": [
       [
