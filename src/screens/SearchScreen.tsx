@@ -1,14 +1,14 @@
 import React, {useEffect} from 'react';
-import {ActivityIndicator, FlatList, StyleSheet, Text, View} from 'react-native';
+import {ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View} from 'react-native';
 import {Book, assets} from '../data/books';
 import {colors} from '../theme/colors';
 import {BookRow} from '../components/BookRow';
 import {ScreenHeader} from '../components/ScreenHeader';
 import {SearchField} from '../components/SearchField';
 
-type Props = {query: string; onQueryChange: (query: string) => void; books: Book[]; hasMore: boolean; loadingMore: boolean; onLoadMore: () => void; catalogUnavailable?: boolean; onBookPress: (book: Book) => void};
+type Props = {query: string; onQueryChange: (query: string) => void; books: Book[]; hasMore: boolean; loadingMore: boolean; refreshing: boolean; onRefresh: () => void; onLoadMore: () => void; catalogUnavailable?: boolean; onBookPress: (book: Book) => void};
 
-export function SearchScreen({query, onQueryChange, books, hasMore, loadingMore, onLoadMore, catalogUnavailable = false, onBookPress}: Props) {
+export function SearchScreen({query, onQueryChange, books, hasMore, loadingMore, refreshing, onRefresh, onLoadMore, catalogUnavailable = false, onBookPress}: Props) {
   useEffect(() => {
     if (query.trim() && books.length === 0 && hasMore && !loadingMore) onLoadMore();
   }, [query, books.length, hasMore, loadingMore, onLoadMore]);
@@ -20,6 +20,7 @@ export function SearchScreen({query, onQueryChange, books, hasMore, loadingMore,
       keyExtractor={book => book.id}
       renderItem={({item}) => <BookRow book={item} onPress={() => onBookPress(item)} />}
       contentContainerStyle={styles.list}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.blue]} tintColor={colors.blue} />}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       onEndReached={hasMore ? onLoadMore : undefined}

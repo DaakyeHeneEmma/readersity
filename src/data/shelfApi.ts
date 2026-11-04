@@ -1,5 +1,7 @@
-import {Book, BookEntry} from './books';
+import {Book, BookEntry, BookFile} from './books';
 import {supabase} from './supabaseClient';
+
+export const MAX_BOOKS_PER_SHELF = 10;
 
 type ShelfRow = {
   book_id: string;
@@ -10,10 +12,19 @@ type ShelfRow = {
     description: string | null;
     cover_path: string | null;
     rating: number | string | null;
+    library_files: {
+      id: string;
+      format: 'pdf' | 'epub';
+      file_name: string;
+      storage_path: string;
+      mime_type: string;
+      file_size_bytes: number;
+      is_available: boolean;
+    }[] | null;
   } | null;
 };
 
-function coverUrl(path: string): string {
+function publicStorageUrl(path: string): string {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL!.replace(/\/$/, '');
   const bucket = process.env.EXPO_PUBLIC_SUPABASE_LIBRARY_BUCKET || 'library-files';
   return `${url}/storage/v1/object/public/${encodeURIComponent(bucket)}/${path.split('/').map(encodeURIComponent).join('/')}`;
@@ -21,7 +32,7 @@ function coverUrl(path: string): string {
 
 export async function fetchUserShelf(): Promise<BookEntry[]> {
   if (!supabase) throw new Error('Supabase is not configured.');
-  const {data, error} = await supabase.from('user_books').select('book_id, library_books(id,title,authors,description,cover_path,rating)').order('created_at', {ascending: false});
+  const {data, error} = await supabase.from('user_books').select('book_id, library_books(id,title,authors,description,cover_path,rating,library_files(id,format,file_name,storage_path,mime_type,file_size_bytes,is_available))').order('created_at', {ascending: false});
   if (error) throw error;
   return ((data || []) as unknown as ShelfRow[]).flatMap(row => {
     const book = row.library_books;
@@ -31,8 +42,16 @@ export async function fetchUserShelf(): Promise<BookEntry[]> {
       title: book.title,
       author: book.authors?.length ? book.authors.join(', ') : 'Unknown author',
       summary: book.description || '',
-      cover: book.cover_path ? {uri: coverUrl(book.cover_path)} : undefined,
+      cover: book.cover_path ? {uri: publicStorageUrl(book.cover_path)} : undefined,
       rating: book.rating == null ? undefined : String(book.rating),
+      files: (book.library_files || []).filter(file => file.is_available).map((file): BookFile => ({
+        id: file.id,
+        format: file.format,
+        fileName: file.file_name,
+        publicUrl: publicStorageUrl(file.storage_path),
+        mimeType: file.mime_type,
+        fileSizeBytes: file.file_size_bytes,
+      })),
     };
     return [mapped];
   });

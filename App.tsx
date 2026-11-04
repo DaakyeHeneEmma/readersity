@@ -1,10 +1,10 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {Alert, BackHandler, Linking, Modal, SafeAreaView, StatusBar, StyleSheet, View, useWindowDimensions} from 'react-native';
+import {Alert, BackHandler, Linking, SafeAreaView, StatusBar, StyleSheet, View, useWindowDimensions} from 'react-native';
 import type {Session} from '@supabase/supabase-js';
 import {BottomTabBar} from './src/components/BottomTabBar';
 import {Book, BookEntry, BookFile, books} from './src/data/books';
 import {fetchBookOfTheMonth, fetchLibraryPage, fetchTopRatedBooks, isLibraryConfigured, LIBRARY_PAGE_SIZE} from './src/data/libraryApi';
-import {addBookToUserShelf, fetchUserShelf, removeBookFromUserShelf} from './src/data/shelfApi';
+import {addBookToUserShelf, fetchUserShelf, MAX_BOOKS_PER_SHELF, removeBookFromUserShelf} from './src/data/shelfApi';
 import {supabase} from './src/data/supabaseClient';
 import {AuthScreen} from './src/screens/AuthScreen';
 import {BookDetailsScreen} from './src/screens/BookDetailsScreen';
@@ -23,18 +23,36 @@ function mergeBooks(...groups: Book[][]): Book[] {
 function sameBook(left: Book, right: Book): boolean {
   return left.id === right.id || left.title.trim().toLowerCase() === right.title.trim().toLowerCase();
 }
+function shelfErrorMessage(error: unknown): string {
+  const detail = error && typeof error === 'object' ? error as {message?: string; code?: string} : undefined;
+  const message = detail?.message || (error instanceof Error ? error.message : String(error));
+  if (detail?.code === '23514' || /shelf limit.*10|at most 10 books/i.test(message)) {
+    return 'Your shelf is full. You can save up to 10 books; remove one before adding another.';
+  }
+  if (/user_books|PGRST205|42P01/i.test(message) && /missing|not exist|schema cache|relation|table/i.test(message)) {
+    return 'The Supabase shelf table is missing. Run supabase/migrations/20261104000000_create_user_books.sql in the Supabase SQL Editor.';
+  }
+  if (/row-level security|42501|permission denied/i.test(message)) {
+    return 'Supabase denied this shelf change. Apply the user_books migration so its user-specific access policies are installed.';
+  }
+  if (/foreign key|23503/i.test(message)) {
+    return 'This book is not present in the Supabase catalog yet. Refresh the catalog and try another listed book.';
+  }
+  return message;
+}
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('splash');
   const [shelf, setShelf] = useState<BookEntry[]>([]);
   const [session, setSession] = useState<Session | null>(null);
-  const [authVisible, setAuthVisible] = useState(false);
   const [pendingShelfBook, setPendingShelfBook] = useState<Book | null>(null);
   const [catalog, setCatalog] = useState<Book[]>(books);
   const [popularBooks, setPopularBooks] = useState<Book[]>([]);
   const [bookOfMonth, setBookOfMonth] = useState<Book | undefined>();
   const [catalogHasMore, setCatalogHasMore] = useState(false);
   const [catalogLoadingMore, setCatalogLoadingMore] = useState(false);
+  const [catalogRefreshing, setCatalogRefreshing] = useState(false);
+  const [shelfRefreshing, setShelfRefreshing] = useState(false);
   const [catalogUnavailable, setCatalogUnavailable] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedBook, setSelectedBook] = useState<Book>(books[0]);
@@ -44,6 +62,7 @@ export default function App() {
   const nextCatalogOffset = useRef(LIBRARY_PAGE_SIZE);
   const catalogHasMoreRef = useRef(false);
   const loadingMoreRef = useRef(false);
+  const refreshingCatalogRef = useRef(false);
 
   useEffect(() => {
     if (!supabase) return;
@@ -95,7 +114,7 @@ export default function App() {
   }, []);
 
   const loadMoreCatalog = useCallback(async () => {
-    if (!isLibraryConfigured || loadingMoreRef.current || !catalogHasMoreRef.current) return;
+    if (!isLibraryConfigured || refreshingCatalogRef.current || loadingMoreRef.current || !catalogHasMoreRef.current) return;
     loadingMoreRef.current = true;
     setCatalogLoadingMore(true);
     try {
@@ -116,6 +135,43 @@ export default function App() {
     }
   }, []);
 
+  const refreshCatalog = useCallback(async () => {
+    if (refreshingCatalogRef.current || loadingMoreRef.current) return;
+    refreshingCatalogRef.current = true;
+    setCatalogRefreshing(true);
+    try {
+      if (!isLibraryConfigured) {
+        setCatalogUnavailable(true);
+        return;
+      }
+      const page = await fetchLibraryPage(0);
+      setCatalog(page.books);
+      nextCatalogOffset.current = page.books.length;
+      catalogHasMoreRef.current = page.hasMore;
+      setCatalogHasMore(page.hasMore);
+      setCatalogUnavailable(false);
+    } catch (error) {
+      console.warn('Could not refresh the Supabase library:', error);
+      Alert.alert('Could not refresh books', 'Check your connection and pull down to try again.');
+    } finally {
+      refreshingCatalogRef.current = false;
+      setCatalogRefreshing(false);
+    }
+  }, []);
+
+  const refreshShelf = useCallback(async () => {
+    if (!session?.user.id || shelfRefreshing) return;
+    setShelfRefreshing(true);
+    try {
+      setShelf(await fetchUserShelf());
+    } catch (error) {
+      console.warn('Could not refresh your shelf:', error);
+      Alert.alert('Could not refresh shelf', 'Check your connection and pull down to try again.');
+    } finally {
+      setShelfRefreshing(false);
+    }
+  }, [session?.user.id, shelfRefreshing]);
+
   const openBook = (book: Book) => {
     if (screen !== 'details') setDetailReturnScreen(screen);
     setSelectedBook(book);
@@ -123,18 +179,22 @@ export default function App() {
   };
 
   const addToShelf = async (book: Book) => {
-    if (!session?.user.id) {
-      setPendingShelfBook(book);
-      setAuthVisible(true);
+    if (shelf.some(item => sameBook(item, book))) return;
+    if (shelf.length >= MAX_BOOKS_PER_SHELF) {
+      Alert.alert('Shelf is full', `You can save up to ${MAX_BOOKS_PER_SHELF} books. Remove one before adding another.`);
       return;
     }
-    if (shelf.some(item => sameBook(item, book))) return;
+    if (!session?.user.id) {
+      setPendingShelfBook(book);
+      setScreen('shelf');
+      return;
+    }
     try {
       const bookId = await addBookToUserShelf(session.user.id, book);
       setShelf(current => current.some(item => item.id === bookId || sameBook(item, book)) ? current : [...current, {...book, id: bookId}]);
     } catch (error) {
       console.warn('Could not save book to your shelf:', error);
-      Alert.alert('Could not add book', 'Please try again. If this continues, refresh the catalog and retry.');
+      Alert.alert('Could not add book', shelfErrorMessage(error));
     }
   };
 
@@ -157,11 +217,10 @@ export default function App() {
         setShelf(current => current.some(item => item.id === bookId || sameBook(item, book)) ? current : [...current, {...book, id: bookId}]);
       } catch (error) {
         console.warn('Could not save book to your shelf:', error);
-        Alert.alert('Could not add book', 'Your account is ready, but this book could not be added. Please try again.');
+        Alert.alert('Could not add book', shelfErrorMessage(error));
       }
       setPendingShelfBook(null);
     }
-    setAuthVisible(false);
   };
 
   const signOut = async () => {
@@ -169,11 +228,6 @@ export default function App() {
     const {error} = await supabase.auth.signOut();
     if (error) Alert.alert('Could not sign out', error.message);
     else { setShelf([]); setScreen('home'); }
-  };
-
-  const requestSignIn = () => {
-    setPendingShelfBook(null);
-    setAuthVisible(true);
   };
 
   const openBookFile = (file: BookFile) => {
@@ -213,8 +267,8 @@ export default function App() {
 
   const body = screen === 'splash' ? <SplashScreen onReady={() => setScreen('home')} />
     : screen === 'home' ? <HomeScreen books={catalog} popularBooks={popularBooks} bookOfMonth={bookOfMonth} catalogUnavailable={catalogUnavailable} onSearch={() => setScreen('search')} onBookPress={openBook} />
-    : screen === 'search' ? <SearchScreen query={query} onQueryChange={setQuery} books={filteredBooks} hasMore={catalogHasMore} loadingMore={catalogLoadingMore} onLoadMore={loadMoreCatalog} catalogUnavailable={catalogUnavailable} onBookPress={openBook} />
-    : screen === 'shelf' ? <ShelfScreen books={shelf} signedIn={Boolean(session)} email={session?.user.email} onSignIn={requestSignIn} onSignOut={signOut} onBookPress={openBook} onRemove={confirmRemoveFromShelf} />
+    : screen === 'search' ? <SearchScreen query={query} onQueryChange={setQuery} books={filteredBooks} hasMore={catalogHasMore} loadingMore={catalogLoadingMore} refreshing={catalogRefreshing} onRefresh={refreshCatalog} onLoadMore={loadMoreCatalog} catalogUnavailable={catalogUnavailable} onBookPress={openBook} />
+    : screen === 'shelf' ? <ShelfScreen books={shelf} signedIn={Boolean(session)} email={session?.user.email} refreshing={shelfRefreshing} onRefresh={refreshShelf} onAuthenticated={finishAuthentication} onContinueBrowsing={() => { setPendingShelfBook(null); setScreen('home'); }} onSignOut={signOut} onBookPress={openBook} onRemove={confirmRemoveFromShelf} />
     : <BookDetailsScreen book={selectedBook} books={catalog} inShelf={Boolean(selectedShelfBook)} backLabel={detailBackLabel} onAdd={() => addToShelf(selectedBook)} onRemove={() => confirmRemoveFromShelf(selectedShelfBook || selectedBook)} onOpenFile={openBookFile} onBack={() => setScreen(detailReturnScreen)} onBookPress={openBook} />;
 
   return <SafeAreaView style={styles.safe}>
@@ -223,19 +277,10 @@ export default function App() {
       {body}
       {screen !== 'splash' && <BottomTabBar screen={screen} onNavigate={setScreen} />}
     </View>
-    <Modal visible={authVisible} transparent animationType="slide" onRequestClose={() => { setAuthVisible(false); setPendingShelfBook(null); }}>
-      <View style={styles.authBackdrop}>
-        <View style={styles.authModal}>
-          <AuthScreen onAuthenticated={finishAuthentication} onBack={() => { setAuthVisible(false); setPendingShelfBook(null); }} />
-        </View>
-      </View>
-    </Modal>
   </SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
   safe: {flex: 1, backgroundColor: colors.blue, alignItems: 'center'},
   canvas: {flex: 1, maxWidth: 456, overflow: 'hidden', backgroundColor: colors.white},
-  authBackdrop: {flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,.48)'},
-  authModal: {height: '90%', overflow: 'hidden', borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: colors.white},
 });

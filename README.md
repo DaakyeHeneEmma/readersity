@@ -53,7 +53,7 @@ Catalog browsing stays public. Readersity asks users to sign in only when they a
 
 Before using account features:
 
-1. Run `supabase/migrations/20261104000000_create_user_books.sql` in the Supabase SQL Editor.
+1. Run `supabase/migrations/20261104000000_create_user_books.sql` and then `supabase/migrations/20261104000001_limit_user_shelf_to_ten.sql` in the Supabase SQL Editor. The second migration limits every user's shelf to 10 books.
 2. In Supabase Authentication URL Configuration, allow `readersity://auth/callback` for email confirmation links.
 3. In Google Cloud, set up an Android OAuth client for `com.daakyeheneemma.readersity` and its signing-certificate SHA-1. Set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in `.env` to the Web OAuth client ID also used by the Supabase Google provider. For iOS, create an iOS OAuth client and set `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`; `app.config.js` adds its URL scheme automatically.
 4. Run `bun install`, then rebuild the development app. Native Google sign-in is not supported in Expo Go; Google login uses its native account chooser and sends the ID token directly to Supabase.

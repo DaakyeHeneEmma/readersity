@@ -77,7 +77,7 @@ export function AuthScreen({onAuthenticated, onBack}: Props) {
 
   return <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Pressable onPress={onBack} accessibilityRole="button"><Text style={styles.back}>×  Close</Text></Pressable>
+      <Pressable onPress={onBack} accessibilityRole="button"><Text style={styles.back}>‹  Continue browsing</Text></Pressable>
       <View style={styles.intro}><Text style={styles.title}>{mode === 'sign-in' ? 'Your shelf, anywhere' : 'Create your account'}</Text><Text style={styles.subtitle}>Sign in to save books to your personal shelf.</Text></View>
       <Pressable accessibilityRole="button" disabled={busy} onPress={handleGoogle} style={styles.google}><Text style={styles.googleText}>Continue with Google</Text></Pressable>
       <Text style={styles.or}>or continue with email</Text>
