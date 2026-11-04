@@ -1,9 +1,10 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Alert, BackHandler, Linking, SafeAreaView, StatusBar, StyleSheet, View, useWindowDimensions} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {Session} from '@supabase/supabase-js';
 import {BottomTabBar} from './src/components/BottomTabBar';
-import {Book, BookEntry, BookFile, books} from './src/data/books';
-import {fetchBookOfTheMonth, fetchLibraryPage, fetchTopRatedBooks, isLibraryConfigured, LIBRARY_PAGE_SIZE} from './src/data/libraryApi';
+import {Book, BookEntry, BookFile} from './src/data/books';
+import {fetchLibraryPage, fetchTopRatedBooks, isLibraryConfigured, LIBRARY_PAGE_SIZE} from './src/data/libraryApi';
 import {addBookToUserShelf, fetchUserShelf, MAX_BOOKS_PER_SHELF, removeBookFromUserShelf} from './src/data/shelfApi';
 import {supabase} from './src/data/supabaseClient';
 import {AuthScreen} from './src/screens/AuthScreen';
@@ -46,16 +47,17 @@ export default function App() {
   const [shelf, setShelf] = useState<BookEntry[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [pendingShelfBook, setPendingShelfBook] = useState<Book | null>(null);
-  const [catalog, setCatalog] = useState<Book[]>(books);
+  const [catalog, setCatalog] = useState<Book[]>([]);
   const [popularBooks, setPopularBooks] = useState<Book[]>([]);
-  const [bookOfMonth, setBookOfMonth] = useState<Book | undefined>();
+  const [randomBookOfMonth, setRandomBookOfMonth] = useState<Book | undefined>();
+  const [selectedBookOfMonthId, setSelectedBookOfMonthId] = useState<string | null>(null);
   const [catalogHasMore, setCatalogHasMore] = useState(false);
   const [catalogLoadingMore, setCatalogLoadingMore] = useState(false);
   const [catalogRefreshing, setCatalogRefreshing] = useState(false);
   const [shelfRefreshing, setShelfRefreshing] = useState(false);
   const [catalogUnavailable, setCatalogUnavailable] = useState(false);
   const [query, setQuery] = useState('');
-  const [selectedBook, setSelectedBook] = useState<Book>(books[0]);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [detailReturnScreen, setDetailReturnScreen] = useState<Screen>('search');
   const {width} = useWindowDimensions();
   const scale = Math.min(width / 390, 1.18);
@@ -74,7 +76,14 @@ export default function App() {
   useEffect(() => {
     if (!session?.user.id) { setShelf([]); return; }
     let active = true;
-    fetchUserShelf().then(userShelf => { if (active) setShelf(userShelf); }).catch(error => {
+    Promise.all([
+      fetchUserShelf(),
+      AsyncStorage.getItem(`readersity.bookOfMonth.${session.user.id}`),
+    ]).then(([userShelf, savedBookId]) => {
+      if (!active) return;
+      setShelf(userShelf);
+      setSelectedBookOfMonthId(savedBookId && userShelf.some(book => book.id === savedBookId) ? savedBookId : null);
+    }).catch(error => {
       console.warn('Could not load your shelf:', error);
       if (active) Alert.alert('Could not load shelf', 'Please check your connection and try again.');
     });
@@ -93,6 +102,7 @@ export default function App() {
       .then(page => {
         if (!active) return;
         setCatalog(page.books);
+        setRandomBookOfMonth(page.books.length ? page.books[Math.floor(Math.random() * page.books.length)] : undefined);
         nextCatalogOffset.current = page.books.length;
         catalogHasMoreRef.current = page.hasMore;
         setCatalogHasMore(page.hasMore);
@@ -107,9 +117,6 @@ export default function App() {
     fetchTopRatedBooks().then(remoteBooks => {
       if (active) setPopularBooks(remoteBooks);
     }).catch(error => console.warn('Could not load top-rated books:', error));
-    fetchBookOfTheMonth().then(remoteBook => {
-      if (active && remoteBook) setBookOfMonth(remoteBook);
-    }).catch(error => console.warn('Could not load the book of the month:', error));
     return () => { active = false; };
   }, []);
 
@@ -146,6 +153,7 @@ export default function App() {
       }
       const page = await fetchLibraryPage(0);
       setCatalog(page.books);
+      setRandomBookOfMonth(page.books.length ? page.books[Math.floor(Math.random() * page.books.length)] : undefined);
       nextCatalogOffset.current = page.books.length;
       catalogHasMoreRef.current = page.hasMore;
       setCatalogHasMore(page.hasMore);
@@ -163,14 +171,30 @@ export default function App() {
     if (!session?.user.id || shelfRefreshing) return;
     setShelfRefreshing(true);
     try {
-      setShelf(await fetchUserShelf());
+      const nextShelf = await fetchUserShelf();
+      setShelf(nextShelf);
+      if (selectedBookOfMonthId && !nextShelf.some(book => book.id === selectedBookOfMonthId)) {
+        setSelectedBookOfMonthId(null);
+        await AsyncStorage.removeItem(`readersity.bookOfMonth.${session.user.id}`);
+      }
     } catch (error) {
       console.warn('Could not refresh your shelf:', error);
       Alert.alert('Could not refresh shelf', 'Check your connection and pull down to try again.');
     } finally {
       setShelfRefreshing(false);
     }
-  }, [session?.user.id, shelfRefreshing]);
+  }, [session?.user.id, selectedBookOfMonthId, shelfRefreshing]);
+
+  const setBookOfMonthFromShelf = useCallback(async (book: Book) => {
+    if (!session?.user.id || !shelf.some(item => item.id === book.id)) return;
+    try {
+      await AsyncStorage.setItem(`readersity.bookOfMonth.${session.user.id}`, book.id);
+      setSelectedBookOfMonthId(book.id);
+    } catch (error) {
+      console.warn('Could not save your Book of the Month:', error);
+      Alert.alert('Could not update Book of the Month', 'Please try again.');
+    }
+  }, [session?.user.id, shelf]);
 
   const openBook = (book: Book) => {
     if (screen !== 'details') setDetailReturnScreen(screen);
@@ -200,7 +224,13 @@ export default function App() {
 
   const removeFromShelf = (book: Book) => {
     if (!session?.user.id) return;
-    removeBookFromUserShelf(session.user.id, book.id).then(() => setShelf(current => current.filter(item => item.id !== book.id))).catch(error => {
+    removeBookFromUserShelf(session.user.id, book.id).then(() => {
+      setShelf(current => current.filter(item => item.id !== book.id));
+      if (selectedBookOfMonthId === book.id) {
+        setSelectedBookOfMonthId(null);
+        AsyncStorage.removeItem(`readersity.bookOfMonth.${session.user.id}`).catch(error => console.warn('Could not clear your Book of the Month:', error));
+      }
+    }).catch(error => {
       console.warn('Could not remove book from your shelf:', error);
       Alert.alert('Could not remove book', 'Please try again.');
     });
@@ -227,7 +257,7 @@ export default function App() {
     if (!supabase) return;
     const {error} = await supabase.auth.signOut();
     if (error) Alert.alert('Could not sign out', error.message);
-    else { setShelf([]); setScreen('home'); }
+    else { setShelf([]); setSelectedBookOfMonthId(null); setScreen('home'); }
   };
 
   const openBookFile = (file: BookFile) => {
@@ -263,13 +293,15 @@ export default function App() {
   }, [screen, detailReturnScreen]);
 
   const detailBackLabel = detailReturnScreen === 'home' ? 'Back To Home' : detailReturnScreen === 'shelf' ? 'Back To Shelf' : 'Back To Search';
-  const selectedShelfBook = shelf.find(book => sameBook(book, selectedBook));
+  const selectedShelfBook = selectedBook ? shelf.find(book => sameBook(book, selectedBook)) : undefined;
+  const bookOfMonth = (session ? shelf.find(book => book.id === selectedBookOfMonthId) : undefined) || randomBookOfMonth;
 
   const body = screen === 'splash' ? <SplashScreen onReady={() => setScreen('home')} />
     : screen === 'home' ? <HomeScreen books={catalog} popularBooks={popularBooks} bookOfMonth={bookOfMonth} catalogUnavailable={catalogUnavailable} onSearch={() => setScreen('search')} onBookPress={openBook} />
     : screen === 'search' ? <SearchScreen query={query} onQueryChange={setQuery} books={filteredBooks} hasMore={catalogHasMore} loadingMore={catalogLoadingMore} refreshing={catalogRefreshing} onRefresh={refreshCatalog} onLoadMore={loadMoreCatalog} catalogUnavailable={catalogUnavailable} onBookPress={openBook} />
-    : screen === 'shelf' ? <ShelfScreen books={shelf} signedIn={Boolean(session)} email={session?.user.email} refreshing={shelfRefreshing} onRefresh={refreshShelf} onAuthenticated={finishAuthentication} onContinueBrowsing={() => { setPendingShelfBook(null); setScreen('home'); }} onSignOut={signOut} onBookPress={openBook} onRemove={confirmRemoveFromShelf} />
-    : <BookDetailsScreen book={selectedBook} books={catalog} inShelf={Boolean(selectedShelfBook)} backLabel={detailBackLabel} onAdd={() => addToShelf(selectedBook)} onRemove={() => confirmRemoveFromShelf(selectedShelfBook || selectedBook)} onOpenFile={openBookFile} onBack={() => setScreen(detailReturnScreen)} onBookPress={openBook} />;
+    : screen === 'shelf' ? <ShelfScreen books={shelf} signedIn={Boolean(session)} email={session?.user.email} refreshing={shelfRefreshing} onRefresh={refreshShelf} onAuthenticated={finishAuthentication} onContinueBrowsing={() => { setPendingShelfBook(null); setScreen('home'); }} onSignOut={signOut} onBookPress={openBook} onSetBookOfMonth={setBookOfMonthFromShelf} onRemove={removeFromShelf} />
+    : screen === 'details' && selectedBook ? <BookDetailsScreen book={selectedBook} books={catalog} inShelf={Boolean(selectedShelfBook)} backLabel={detailBackLabel} onAdd={() => addToShelf(selectedBook)} onRemove={() => confirmRemoveFromShelf(selectedShelfBook || selectedBook)} onOpenFile={openBookFile} onBack={() => setScreen(detailReturnScreen)} onBookPress={openBook} />
+    : <HomeScreen books={catalog} popularBooks={popularBooks} bookOfMonth={bookOfMonth} catalogUnavailable={catalogUnavailable} onSearch={() => setScreen('search')} onBookPress={openBook} />;
 
   return <SafeAreaView style={styles.safe}>
     <StatusBar barStyle="light-content" />

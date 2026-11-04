@@ -25,7 +25,7 @@ export function SearchScreen({query, onQueryChange, books, hasMore, loadingMore,
       showsVerticalScrollIndicator={false}
       onEndReached={hasMore ? onLoadMore : undefined}
       onEndReachedThreshold={0.45}
-      ListHeaderComponent={catalogUnavailable ? <Text style={styles.warning}>Online library unavailable. Showing the bundled sample catalog.</Text> : null}
+      ListHeaderComponent={catalogUnavailable ? <Text style={styles.warning}>Online library unavailable. Pull down to try again.</Text> : null}
       ListEmptyComponent={<Text style={styles.empty}>{loadingMore ? 'Searching the catalog…' : query.trim() ? `No books match “${query}”.` : 'No books are available yet.'}</Text>}
       ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.blue} style={styles.footer} /> : <View style={styles.footer} />}
     />

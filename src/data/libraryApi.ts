@@ -93,7 +93,3 @@ export function fetchTopRatedBooks(): Promise<Book[]> {
   return requestLibraryBooks({order: 'rating.desc.nullslast,title.asc', limit: '5'});
 }
 
-export async function fetchBookOfTheMonth(): Promise<Book | undefined> {
-  const results = await requestLibraryBooks({title: 'ilike.*The Power of Focus*', limit: '1'});
-  return results[0];
-}
