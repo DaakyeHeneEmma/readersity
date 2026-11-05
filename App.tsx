@@ -10,12 +10,13 @@ import {supabase} from './src/data/supabaseClient';
 import {AuthScreen} from './src/screens/AuthScreen';
 import {BookDetailsScreen} from './src/screens/BookDetailsScreen';
 import {HomeScreen} from './src/screens/HomeScreen';
+import {PdfReaderScreen} from './src/screens/PdfReaderScreen';
 import {SearchScreen} from './src/screens/SearchScreen';
 import {ShelfScreen} from './src/screens/ShelfScreen';
 import {SplashScreen} from './src/screens/SplashScreen';
 import {colors} from './src/theme/colors';
 
-type Screen = 'splash' | 'home' | 'search' | 'shelf' | 'details';
+type Screen = 'splash' | 'home' | 'search' | 'shelf' | 'details' | 'reader';
 function mergeBooks(...groups: Book[][]): Book[] {
   const byId = new Map<string, Book>();
   groups.flat().forEach(book => byId.set(book.id, book));
@@ -58,6 +59,7 @@ export default function App() {
   const [catalogUnavailable, setCatalogUnavailable] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [selectedFile, setSelectedFile] = useState<BookFile | null>(null);
   const [detailReturnScreen, setDetailReturnScreen] = useState<Screen>('search');
   const {width} = useWindowDimensions();
   const scale = Math.min(width / 390, 1.18);
@@ -261,9 +263,14 @@ export default function App() {
   };
 
   const openBookFile = (file: BookFile) => {
-    Linking.openURL(file.publicUrl).catch(() => {
-      Alert.alert('Unable to open file', `Could not open ${file.fileName}.`);
-    });
+    if (file.format !== 'pdf') {
+      Linking.openURL(file.publicUrl).catch(() => {
+        Alert.alert('Unable to open file', `Could not open ${file.fileName}.`);
+      });
+      return;
+    }
+    setSelectedFile(file);
+    setScreen('reader');
   };
 
   const confirmRemoveFromShelf = (book: Book) => {
@@ -279,6 +286,10 @@ export default function App() {
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (screen === 'reader') {
+        setScreen('details');
+        return true;
+      }
       if (screen === 'details') {
         setScreen(detailReturnScreen);
         return true;
@@ -301,13 +312,14 @@ export default function App() {
     : screen === 'search' ? <SearchScreen query={query} onQueryChange={setQuery} books={filteredBooks} hasMore={catalogHasMore} loadingMore={catalogLoadingMore} refreshing={catalogRefreshing} onRefresh={refreshCatalog} onLoadMore={loadMoreCatalog} catalogUnavailable={catalogUnavailable} onBookPress={openBook} />
     : screen === 'shelf' ? <ShelfScreen books={shelf} signedIn={Boolean(session)} email={session?.user.email} refreshing={shelfRefreshing} onRefresh={refreshShelf} onAuthenticated={finishAuthentication} onContinueBrowsing={() => { setPendingShelfBook(null); setScreen('home'); }} onSignOut={signOut} onBookPress={openBook} onSetBookOfMonth={setBookOfMonthFromShelf} onRemove={removeFromShelf} />
     : screen === 'details' && selectedBook ? <BookDetailsScreen book={selectedBook} books={catalog} inShelf={Boolean(selectedShelfBook)} backLabel={detailBackLabel} onAdd={() => addToShelf(selectedBook)} onRemove={() => confirmRemoveFromShelf(selectedShelfBook || selectedBook)} onOpenFile={openBookFile} onBack={() => setScreen(detailReturnScreen)} onBookPress={openBook} />
+    : screen === 'reader' && selectedBook && selectedFile ? <PdfReaderScreen file={selectedFile} title={selectedBook.title} onBack={() => setScreen('details')} />
     : <HomeScreen books={catalog} popularBooks={popularBooks} bookOfMonth={bookOfMonth} catalogUnavailable={catalogUnavailable} onSearch={() => setScreen('search')} onBookPress={openBook} />;
 
   return <SafeAreaView style={styles.safe}>
     <StatusBar barStyle="light-content" />
     <View style={[styles.canvas, {width: 390 * scale}]}>
       {body}
-      {screen !== 'splash' && <BottomTabBar screen={screen} onNavigate={setScreen} />}
+      {screen !== 'splash' && screen !== 'reader' && <BottomTabBar screen={screen} onNavigate={setScreen} />}
     </View>
   </SafeAreaView>;
 }

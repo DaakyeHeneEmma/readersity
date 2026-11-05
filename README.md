@@ -59,3 +59,9 @@ Before using account features:
 4. Run `bun install`, then rebuild the development app. Native Google sign-in is not supported in Expo Go; Google login uses its native account chooser and sends the ID token directly to Supabase.
 
 The app uses the existing `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_KEY` values. Never put the service-role key in the mobile app.
+
+
+
+add community/group to the main 
+read the book in the app not external - done
+sign in page unresponsive
