@@ -63,4 +63,5 @@ The app uses the existing `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_K
 
 
 add community/group to the main 
-read the book in the app not external
+read the book in the app not external - done
+sign in page unresponsive
