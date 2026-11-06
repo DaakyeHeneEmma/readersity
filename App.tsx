@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Alert, BackHandler, Linking, SafeAreaView, StatusBar, StyleSheet, View, useWindowDimensions} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import type {Session} from '@supabase/supabase-js';
 import {BottomTabBar} from './src/components/BottomTabBar';
 import {Book, BookEntry, BookFile} from './src/data/books';
@@ -74,6 +75,15 @@ export default function App() {
     const {data: {subscription}} = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const orientationChange = screen === 'reader'
+      ? ScreenOrientation.unlockAsync()
+      : ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    orientationChange.catch(error => {
+      console.warn('Could not update screen orientation:', error);
+    });
+  }, [screen]);
 
   useEffect(() => {
     if (!session?.user.id) { setShelf([]); return; }
@@ -310,14 +320,14 @@ export default function App() {
   const body = screen === 'splash' ? <SplashScreen onReady={() => setScreen('home')} />
     : screen === 'home' ? <HomeScreen books={catalog} popularBooks={popularBooks} bookOfMonth={bookOfMonth} catalogUnavailable={catalogUnavailable} onSearch={() => setScreen('search')} onBookPress={openBook} />
     : screen === 'search' ? <SearchScreen query={query} onQueryChange={setQuery} books={filteredBooks} hasMore={catalogHasMore} loadingMore={catalogLoadingMore} refreshing={catalogRefreshing} onRefresh={refreshCatalog} onLoadMore={loadMoreCatalog} catalogUnavailable={catalogUnavailable} onBookPress={openBook} />
-    : screen === 'shelf' ? <ShelfScreen books={shelf} signedIn={Boolean(session)} email={session?.user.email} refreshing={shelfRefreshing} onRefresh={refreshShelf} onAuthenticated={finishAuthentication} onContinueBrowsing={() => { setPendingShelfBook(null); setScreen('home'); }} onSignOut={signOut} onBookPress={openBook} onSetBookOfMonth={setBookOfMonthFromShelf} onRemove={removeFromShelf} />
+    : screen === 'shelf' ? <ShelfScreen books={shelf} signedIn={Boolean(session)} email={session?.user.email} refreshing={shelfRefreshing} onRefresh={refreshShelf} onAuthenticated={finishAuthentication} onSignOut={signOut} onBookPress={openBook} onSetBookOfMonth={setBookOfMonthFromShelf} onRemove={removeFromShelf} />
     : screen === 'details' && selectedBook ? <BookDetailsScreen book={selectedBook} books={catalog} inShelf={Boolean(selectedShelfBook)} backLabel={detailBackLabel} onAdd={() => addToShelf(selectedBook)} onRemove={() => confirmRemoveFromShelf(selectedShelfBook || selectedBook)} onOpenFile={openBookFile} onBack={() => setScreen(detailReturnScreen)} onBookPress={openBook} />
     : screen === 'reader' && selectedBook && selectedFile ? <PdfReaderScreen file={selectedFile} title={selectedBook.title} onBack={() => setScreen('details')} />
     : <HomeScreen books={catalog} popularBooks={popularBooks} bookOfMonth={bookOfMonth} catalogUnavailable={catalogUnavailable} onSearch={() => setScreen('search')} onBookPress={openBook} />;
 
   return <SafeAreaView style={styles.safe}>
     <StatusBar barStyle="light-content" />
-    <View style={[styles.canvas, {width: 390 * scale}]}>
+    <View style={[styles.canvas, screen === 'reader' ? {width, maxWidth: '100%'} : {width: 390 * scale}]}>
       {body}
       {screen !== 'splash' && screen !== 'reader' && <BottomTabBar screen={screen} onNavigate={setScreen} />}
     </View>

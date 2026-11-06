@@ -4,7 +4,7 @@
     "slug": "readersity",
     "scheme": "readersity",
     "icon": "./assets/app-icon.png",
-    "orientation": "portrait",
+    "orientation": "default",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "android": {
@@ -15,7 +15,8 @@
       "package": "com.daakyeheneemma.readersity"
     },
     "ios": {
-      "bundleIdentifier": "com.daakyeheneemma.readersity"
+      "bundleIdentifier": "com.daakyeheneemma.readersity",
+      "requireFullScreen": true
     },
     "plugins": [
       [
@@ -25,6 +26,12 @@
           "image": "./assets/optimized/brand-art.png",
           "imageWidth": 282,
           "resizeMode": "contain"
+        }
+      ],
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
         }
       ]
     ],

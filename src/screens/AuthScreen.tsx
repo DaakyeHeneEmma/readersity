@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
+import {ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
 import {GoogleSignin, isSuccessResponse} from '@react-native-google-signin/google-signin';
 import {AUTH_REDIRECT_URL, completeAuthRedirect, supabase} from '../data/supabaseClient';
 import {colors, fontFamily} from '../theme/colors';
@@ -10,13 +10,23 @@ if (googleWebClientId) {
   GoogleSignin.configure({webClientId: googleWebClientId, iosClientId: googleIosClientId, offlineAccess: false});
 }
 
-type Props = {onAuthenticated: () => void; onBack: () => void};
+type Props = {onAuthenticated: () => void};
 
-export function AuthScreen({onAuthenticated, onBack}: Props) {
+export function AuthScreen({onAuthenticated}: Props) {
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  React.useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   React.useEffect(() => {
     const finishRedirect = (url: string) => {
@@ -75,10 +85,9 @@ export function AuthScreen({onAuthenticated, onBack}: Props) {
     }
   };
 
-  return <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Pressable onPress={onBack} accessibilityRole="button"><Text style={styles.back}>‹  Continue browsing</Text></Pressable>
-      <View style={styles.intro}><Text style={styles.title}>{mode === 'sign-in' ? 'Your shelf, anywhere' : 'Create your account'}</Text><Text style={styles.subtitle}>Sign in to save books to your personal shelf.</Text></View>
+  return <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <ScrollView contentContainerStyle={[styles.content, keyboardVisible && styles.contentKeyboard]} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}>
+      <View style={[styles.intro, keyboardVisible && styles.introKeyboard]}><Text style={styles.title}>{mode === 'sign-in' ? 'Your shelf, anywhere' : 'Create your account'}</Text><Text style={styles.subtitle}>Sign in to save books to your personal shelf.</Text></View>
       <Pressable accessibilityRole="button" disabled={busy} onPress={handleGoogle} style={styles.google}><Text style={styles.googleText}>Continue with Google</Text></Pressable>
       <Text style={styles.or}>or continue with email</Text>
       <Text style={styles.label}>Email</Text><TextInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={email} onChangeText={setEmail} placeholder="you@example.com" style={styles.input} />
@@ -90,5 +99,5 @@ export function AuthScreen({onAuthenticated, onBack}: Props) {
 }
 
 const styles = StyleSheet.create({
-  screen: {flex: 1, backgroundColor: colors.white}, content: {flexGrow: 1, paddingHorizontal: 26, paddingTop: 22, paddingBottom: 44}, back: {fontFamily, color: colors.blue, fontSize: 17}, intro: {marginTop: 70, marginBottom: 30}, title: {fontFamily, color: colors.ink, fontSize: 29, fontWeight: '700'}, subtitle: {fontFamily, color: colors.muted, fontSize: 15, marginTop: 8}, google: {height: 52, borderRadius: 12, borderWidth: 1, borderColor: '#D4D8E1', alignItems: 'center', justifyContent: 'center'}, googleText: {fontFamily, color: colors.ink, fontSize: 16, fontWeight: '700'}, or: {textAlign: 'center', color: colors.muted, fontFamily, marginVertical: 23}, label: {fontFamily, color: colors.ink, fontWeight: '700', marginBottom: 7}, input: {height: 50, borderWidth: 1, borderColor: '#D4D8E1', borderRadius: 10, paddingHorizontal: 13, marginBottom: 18, fontFamily, color: colors.ink}, primary: {height: 52, borderRadius: 18, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center', marginTop: 5}, disabled: {opacity: 0.55}, primaryText: {fontFamily, color: colors.white, fontSize: 17, fontWeight: '700'}, switch: {fontFamily, color: colors.blue, fontWeight: '700', textAlign: 'center', marginTop: 22},
+  screen: {flex: 1, backgroundColor: colors.white}, content: {flexGrow: 1, paddingHorizontal: 26, paddingTop: 12, paddingBottom: 30}, contentKeyboard: {paddingTop: 8, paddingBottom: 16}, intro: {marginTop: 28, marginBottom: 22}, introKeyboard: {marginTop: 14, marginBottom: 14}, title: {fontFamily, color: colors.ink, fontSize: 29, fontWeight: '700'}, subtitle: {fontFamily, color: colors.muted, fontSize: 15, marginTop: 8}, google: {height: 52, borderRadius: 12, borderWidth: 1, borderColor: '#D4D8E1', alignItems: 'center', justifyContent: 'center'}, googleText: {fontFamily, color: colors.ink, fontSize: 16, fontWeight: '700'}, or: {textAlign: 'center', color: colors.muted, fontFamily, marginVertical: 18}, label: {fontFamily, color: colors.ink, fontWeight: '700', marginBottom: 7}, input: {height: 50, borderWidth: 1, borderColor: '#D4D8E1', borderRadius: 10, paddingHorizontal: 13, marginBottom: 14, fontFamily, color: colors.ink}, primary: {height: 52, borderRadius: 18, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center', marginTop: 5}, disabled: {opacity: 0.55}, primaryText: {fontFamily, color: colors.white, fontSize: 17, fontWeight: '700'}, switch: {fontFamily, color: colors.blue, fontWeight: '700', textAlign: 'center', marginTop: 18},
 });
