@@ -318,12 +318,12 @@ export default function App() {
   const bookOfMonth = (session ? shelf.find(book => book.id === selectedBookOfMonthId) : undefined) || randomBookOfMonth;
 
   const body = screen === 'splash' ? <SplashScreen onReady={() => setScreen('home')} />
-    : screen === 'home' ? <HomeScreen books={catalog} popularBooks={popularBooks} bookOfMonth={bookOfMonth} catalogUnavailable={catalogUnavailable} onSearch={() => setScreen('search')} onBookPress={openBook} />
+    : screen === 'home' ? <HomeScreen books={catalog} popularBooks={popularBooks} bookOfMonth={bookOfMonth} catalogUnavailable={catalogUnavailable} onBookPress={openBook} />
     : screen === 'search' ? <SearchScreen query={query} onQueryChange={setQuery} books={filteredBooks} hasMore={catalogHasMore} loadingMore={catalogLoadingMore} refreshing={catalogRefreshing} onRefresh={refreshCatalog} onLoadMore={loadMoreCatalog} catalogUnavailable={catalogUnavailable} onBookPress={openBook} />
     : screen === 'shelf' ? <ShelfScreen books={shelf} signedIn={Boolean(session)} email={session?.user.email} refreshing={shelfRefreshing} onRefresh={refreshShelf} onAuthenticated={finishAuthentication} onSignOut={signOut} onBookPress={openBook} onSetBookOfMonth={setBookOfMonthFromShelf} onRemove={removeFromShelf} />
     : screen === 'details' && selectedBook ? <BookDetailsScreen book={selectedBook} books={catalog} inShelf={Boolean(selectedShelfBook)} backLabel={detailBackLabel} onAdd={() => addToShelf(selectedBook)} onRemove={() => confirmRemoveFromShelf(selectedShelfBook || selectedBook)} onOpenFile={openBookFile} onBack={() => setScreen(detailReturnScreen)} onBookPress={openBook} />
     : screen === 'reader' && selectedBook && selectedFile ? <PdfReaderScreen file={selectedFile} title={selectedBook.title} onBack={() => setScreen('details')} />
-    : <HomeScreen books={catalog} popularBooks={popularBooks} bookOfMonth={bookOfMonth} catalogUnavailable={catalogUnavailable} onSearch={() => setScreen('search')} onBookPress={openBook} />;
+    : <HomeScreen books={catalog} popularBooks={popularBooks} bookOfMonth={bookOfMonth} catalogUnavailable={catalogUnavailable} onBookPress={openBook} />;
 
   return <SafeAreaView style={styles.safe}>
     <StatusBar barStyle="light-content" />
