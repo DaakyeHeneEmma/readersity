@@ -7,9 +7,9 @@ import {ScreenHeader} from '../components/ScreenHeader';
 import {SearchField} from '../components/SearchField';
 import {AuthScreen} from './AuthScreen';
 
-type Props = {books: Book[]; signedIn: boolean; email?: string; refreshing: boolean; onRefresh: () => void; onAuthenticated: () => void; onContinueBrowsing: () => void; onSignOut: () => void; onBookPress: (book: Book) => void; onSetBookOfMonth: (book: Book) => void; onRemove: (book: Book) => void};
+type Props = {books: Book[]; signedIn: boolean; email?: string; refreshing: boolean; onRefresh: () => void; onAuthenticated: () => void; onSignOut: () => void; onBookPress: (book: Book) => void; onSetBookOfMonth: (book: Book) => void; onRemove: (book: Book) => void};
 
-export function ShelfScreen({books, signedIn, email, refreshing, onRefresh, onAuthenticated, onContinueBrowsing, onSignOut, onBookPress, onSetBookOfMonth, onRemove}: Props) {
+export function ShelfScreen({books, signedIn, email, refreshing, onRefresh, onAuthenticated, onSignOut, onBookPress, onSetBookOfMonth, onRemove}: Props) {
   const [query, setQuery] = useState('');
   const [actionBook, setActionBook] = useState<Book | null>(null);
   const [confirmingRemoval, setConfirmingRemoval] = useState(false);
@@ -29,7 +29,7 @@ export function ShelfScreen({books, signedIn, email, refreshing, onRefresh, onAu
     {signedIn ? <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.blue]} tintColor={colors.blue} />}>
       <View style={styles.account}><Text numberOfLines={1} style={styles.email}>{email || 'Signed in'}</Text><Text onPress={onSignOut} style={styles.signOut}>Sign out</Text></View>
       {filtered.length ? filtered.map(book => <BookRow key={book.id} book={book} compact onPress={() => onBookPress(book)} onMoreOptions={() => openActions(book)} />) : <Text style={styles.empty}>{books.length ? 'No books match your search.' : 'Your shelf is empty. Add a book to keep it here.'}</Text>}
-    </ScrollView> : <AuthScreen onAuthenticated={onAuthenticated} onBack={onContinueBrowsing} />}
+    </ScrollView> : <AuthScreen onAuthenticated={onAuthenticated} />}
     <Modal visible={Boolean(actionBook)} transparent animationType="fade" statusBarTranslucent onRequestClose={closeActions}>
       <View style={styles.modalOverlay}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close book actions" onPress={closeActions} style={StyleSheet.absoluteFill} />
