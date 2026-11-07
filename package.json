@@ -22,6 +22,7 @@
     "react-native": "0.88.1",
     "react-native-blob-util": "^0.25.0",
     "react-native-pdf": "^7.0.5",
+    "react-native-webview": "14.0.1",
     "react-native-url-polyfill": "^4.0.0"
   },
   "devDependencies": {
