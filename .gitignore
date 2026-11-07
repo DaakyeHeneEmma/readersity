@@ -11,6 +11,7 @@ expo-env.d.ts
 .env*.local
 gdrive_key.json
 *service-account*.json
+DAILY_MOTIVATIONAL_VIDEO.md
 
 # Signing keys and provisioning files
 *.jks

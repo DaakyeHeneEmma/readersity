@@ -3,6 +3,7 @@ import {Animated, Image, Pressable, ScrollView, StyleSheet, Text, View} from 're
 import {Book, assets} from '../data/books';
 import {colors, fontFamily} from '../theme/colors';
 import {ScreenHeader} from '../components/ScreenHeader';
+import {DailyMotivationVideo} from '../components/DailyMotivationVideo';
 
 type Props = {books: Book[]; popularBooks?: Book[]; bookOfMonth?: Book; catalogUnavailable?: boolean; onBookPress: (book: Book) => void};
 const featureCardWidth = 222;
@@ -57,7 +58,7 @@ export function HomeScreen({books, popularBooks = [], bookOfMonth, catalogUnavai
       {monthBook?.cover ? <Image source={monthBook.cover} resizeMode="cover" resizeMethod="resize" fadeDuration={0} style={styles.monthFeatureCover} /> : <View style={styles.monthFeatureCover} />}
       {monthBook ? <View style={styles.monthFeatureInfo}><Text style={styles.monthFeatureLabel}>Book of the Month</Text><Text style={styles.monthFeatureTitle}>{monthBook.title}</Text><Text style={styles.monthFeatureAuthor}>{monthBook.author}</Text><Text numberOfLines={2} style={styles.monthFeatureSummary}>{monthBook.summary}</Text><Text style={styles.monthFeatureLink}>View Details  →</Text></View> : <View style={styles.monthFeatureInfo}><Text style={styles.monthFeatureLabel}>Book of the Month</Text><Text style={styles.monthFeatureSummary}>A recommended book will appear here when the catalog is available.</Text></View>}
     </Pressable> : null}
-    {category === 'All Books' ? <View style={styles.catalog}>{books.length ? books.slice(0, 5).map(book => <Pressable key={book.id} onPress={() => onBookPress(book)}><Text style={styles.catalogTitle}>{book.title}</Text><Text style={styles.catalogAuthor}>{book.author}</Text></Pressable>) : <Text style={styles.catalogEmpty}>No books are available yet.</Text>}</View> : null}
+    {category === 'All Books' ? <DailyMotivationVideo /> : null}
   </ScrollView>;
 }
 
@@ -72,5 +73,5 @@ const styles = StyleSheet.create({
   categoryTabs: {marginTop: 32, marginHorizontal: 52, height: 42, padding: 4, borderRadius: 12, backgroundColor: 'rgba(15,54,191,.12)', flexDirection: 'row', alignItems: 'center'}, categoryButton: {flex: 1, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center'}, categoryButtonSelected: {backgroundColor: colors.blue, elevation: 2}, activeTab: {color: colors.white, fontFamily, fontWeight: '700', fontSize: 14}, tab: {color: '#5D5FEF', fontFamily, fontWeight: '700', fontSize: 14},
   heading: {marginTop: 26, marginHorizontal: 29}, headingText: {fontFamily, fontWeight: '700', color: colors.blue, fontSize: 18}, monthFeature: {marginHorizontal: 28, marginTop: 16, minHeight: 160, padding: 12, borderRadius: 16, backgroundColor: '#F2F4FA', flexDirection: 'row', gap: 14}, monthFeatureCover: {width: 112, height: 144, borderRadius: 10, backgroundColor: '#D9D7D7'}, monthFeatureInfo: {flex: 1, justifyContent: 'center'}, monthFeatureLabel: {fontFamily, fontWeight: '700', color: colors.blue, fontSize: 11, marginBottom: 4}, monthFeatureTitle: {fontFamily, fontWeight: '700', color: colors.ink, fontSize: 16}, monthFeatureAuthor: {fontFamily, color: colors.muted, fontSize: 12, marginTop: 4}, monthFeatureSummary: {fontFamily, color: colors.ink, fontSize: 11, lineHeight: 15, marginTop: 9}, monthFeatureLink: {fontFamily, color: colors.blue, fontSize: 12, fontWeight: '700', marginTop: 9},
   popularList: {paddingHorizontal: 22, paddingTop: 12, gap: 8}, popularItem: {padding: 14, borderRadius: 12, backgroundColor: '#F2F4FA'}, popularTitle: {fontFamily, fontWeight: '700', color: colors.ink, fontSize: 16}, popularAuthor: {fontFamily, color: colors.muted, fontSize: 13, marginTop: 4},
-  catalogWarning: {marginHorizontal: 20, marginTop: 12, color: '#8A4B08', fontFamily, fontSize: 12}, catalog: {marginHorizontal: 29, marginTop: 28, gap: 10}, catalogTitle: {fontFamily, fontWeight: '700', color: colors.ink}, catalogAuthor: {fontFamily, color: colors.muted, fontSize: 12}, catalogEmpty: {fontFamily, color: colors.muted, fontSize: 13},
+  catalogWarning: {marginHorizontal: 20, marginTop: 12, color: '#8A4B08', fontFamily, fontSize: 12}, catalogEmpty: {fontFamily, color: colors.muted, fontSize: 13},
 });
